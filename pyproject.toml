@@ -1,22 +1,57 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "geo-visibility-cli"
-version = "0.1.0"
+dynamic = ["version"]  # single source: geo_check.__version__
 description = "Check how AI answer engines mention your brand (GEO visibility) and whether your site allows AI crawlers."
-readme = "README.md"
+readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
-license = { text = "MIT" }
-authors = [{ name = "Douglas Gouvea Manoel" }]
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Douglas Gouvea" }]
+keywords = [
+    "geo",
+    "generative-engine-optimization",
+    "ai-visibility",
+    "ai-search",
+    "perplexity",
+    "robots.txt",
+    "ai-crawlers",
+    "local-seo",
+    "cli",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Office/Business :: Marketing",
+]
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/DouglasGouvea/geo-visibility-cli"
+Repository = "https://github.com/DouglasGouvea/geo-visibility-cli"
+Issues = "https://github.com/DouglasGouvea/geo-visibility-cli/issues"
+Changelog = "https://github.com/DouglasGouvea/geo-visibility-cli/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 test = ["pytest"]
 
 [project.scripts]
 geo-check = "geo_check.cli:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "geo_check.__version__" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
