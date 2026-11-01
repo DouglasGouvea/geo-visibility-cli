@@ -75,6 +75,26 @@ def test_platform_skips_own_site():
     assert any("yelp.com" in x for x in tk) and not any("a.com (" in x for x in tk)
 
 
+@pytest.mark.parametrize(
+    "skipped", ["wikipedia.org", "pt.wikipedia.org", "youtube.com", "www.youtube.com",
+                "reddit.com", "www.reddit.com", "old.reddit.com"],
+)
+def test_platform_skips_generic_non_listing_sources(skipped):
+    domains = [{"domain": skipped, "count": 20}, {"domain": "yelp.com", "count": 2}]
+    tk = takeaways(_result(5, domains=domains))
+    assert any("yelp.com" in x for x in tk) and not any(skipped in x for x in tk)
+
+
+def test_platform_omitted_when_only_non_listing_sources():
+    domains = [{"domain": "pt.wikipedia.org", "count": 5}, {"domain": "reddit.com", "count": 3}]
+    assert len(takeaways(_result(5, domains=domains))) == 1
+
+
+def test_reclameaqui_still_allowed():
+    domains = [{"domain": "youtube.com", "count": 9}, {"domain": "reclameaqui.com.br", "count": 4}]
+    assert any("reclameaqui.com.br" in x for x in takeaways(_result(5, domains=domains)))
+
+
 def test_robots_missing_and_unreachable_notes():
     nf = {"status": "not_found", "code": 404, "crawlers": robots.check_crawlers("")}
     assert any("No robots.txt" in x for x in takeaways(_result(5, robots_=nf, site="https://a.com")))

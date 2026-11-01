@@ -119,7 +119,18 @@ _GENERIC = {
         "especialista especialistas servico servicos saude clinic clinics dentist dentistry "
         "dental doctor doctors lawyer lawyers law firm firms center centre institute office "
         "offices group specialist specialists practice practices care health medical "
-        "attorney attorneys associates associados"
+        "attorney attorneys associates associados "
+        # specialties and generic service words (PT)
+        "ortodontia implante implantes implantodontia clareamento endodontia periodontia "
+        "estetica protese proteses cardiologia dermatologia pediatria ginecologia "
+        "oftalmologia ortopedia neurologia urologia psiquiatria psicologia fisioterapia "
+        "nutricao cirurgia tratamento tratamentos consulta consultas direito juridico "
+        "juridica trabalhista tributario civil familia "
+        # specialties and generic service words (EN)
+        "orthodontics orthodontic orthodontist implant cosmetic whitening endodontics "
+        "periodontics prosthodontics cardiology dermatology pediatrics gynecology "
+        "ophthalmology orthopedics neurology urology psychiatry psychology physiotherapy "
+        "surgery treatment treatments consultation consultations legal services"
     ).split()
 }
 

@@ -8,6 +8,15 @@ FIVERR_URL = (
 )
 CHECKER_URL = "https://geo-visibility-check.vercel.app"
 
+# Generic sources that are not places a business can "get listed" (incl. subdomains)
+_NON_LISTING = ("wikipedia.org", "youtube.com", "reddit.com")
+
+
+def _is_listing_source(domain: str) -> bool:
+    d = domain.lower()
+    return not any(d == x or d.endswith("." + x) for x in _NON_LISTING)
+
+
 LOW_RATE = 1 / 3
 HIGH_RATE = 2 / 3
 
@@ -184,7 +193,7 @@ def takeaways(r: dict) -> list[str]:
 
     own = domain_of(r["site"]) if r.get("site") else ""
     for d in r.get("cited_domains") or []:
-        if d["domain"] != own:
+        if d["domain"] != own and _is_listing_source(d["domain"]):
             out.append(t["platform"].format(domain=d["domain"], count=d["count"], **ctx))
             break
 

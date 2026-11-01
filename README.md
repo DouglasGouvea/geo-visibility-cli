@@ -74,7 +74,7 @@ Top cited domains:
 |---|---|
 | doctoralia.com.br | 96 |
 | dentmap.com.br | 12 |
-| acheioprofissional | 9 |
+| acheioprofissional.com.br | 9 |
 
 AI-recommended competitors (candidates, heuristic): Dra. Júlia Jacob, Dr. Sérgio Moura Guimarães, Dr. Guilherme Garcia.
 

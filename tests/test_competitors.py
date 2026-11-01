@@ -108,3 +108,19 @@ def test_generic_category_and_city_excluded():
 
 def test_brand_excluded_with_accents():
     assert "Clínica Exemplo" not in _names(["**Clinica Exemplo** é boa."], "Clínica Exemplo")
+
+
+def test_specialty_and_service_words_dropped_accent_case_insensitive():
+    text = (
+        "- **Ortodontia** - area\n"
+        "- **Implantes** - area\n"
+        "- **ESTÉTICA** - area\n"
+        "- **Cosmetic Dentistry** - area\n"
+        "- **Dra. Júlia Jacob** - ortodontista\n"
+        "- **Clínica Ortodontia Campinas** - endereço\n"
+    )
+    names = _names([text], "Zzz")
+    assert "Dra. Júlia Jacob" in names
+    assert "Clínica Ortodontia Campinas" in names
+    for bad in ("Ortodontia", "Implantes", "ESTÉTICA", "Cosmetic Dentistry"):
+        assert bad not in names
