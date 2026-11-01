@@ -18,6 +18,22 @@ inputs:
     description: "Site URL to check robots.txt for AI crawlers (optional)"
     required: false
     default: ""
+  lang:
+    description: "Report language: pt or en (default: auto-detect from the category)"
+    required: false
+    default: ""
+  runs:
+    description: "Runs per question"
+    required: false
+    default: "3"
+  history-dir:
+    description: "Directory where each run is appended; enables the 'changes since last check' section (optional)"
+    required: false
+    default: ""
+  format:
+    description: "Report format: md, html or json"
+    required: false
+    default: "md"
   dry-run:
     description: "Simulate without network or API key"
     required: false
@@ -39,9 +55,17 @@ runs:
         INPUT_CITY: ${{ inputs.city }}
         INPUT_BRAND: ${{ inputs.brand }}
         INPUT_SITE: ${{ inputs.site }}
+        INPUT_LANG: ${{ inputs.lang }}
+        INPUT_RUNS: ${{ inputs.runs }}
+        INPUT_HISTORY_DIR: ${{ inputs.history-dir }}
+        INPUT_FORMAT: ${{ inputs.format }}
         INPUT_DRY_RUN: ${{ inputs.dry-run }}
       run: |
         args=("$INPUT_CATEGORY" "$INPUT_CITY" --brand "$INPUT_BRAND")
         if [ -n "$INPUT_SITE" ]; then args+=(--site "$INPUT_SITE"); fi
+        if [ -n "$INPUT_LANG" ]; then args+=(--lang "$INPUT_LANG"); fi
+        if [ -n "$INPUT_RUNS" ]; then args+=(--runs "$INPUT_RUNS"); fi
+        if [ -n "$INPUT_HISTORY_DIR" ]; then args+=(--history-dir "$INPUT_HISTORY_DIR"); fi
+        if [ -n "$INPUT_FORMAT" ]; then args+=(--format "$INPUT_FORMAT"); fi
         if [ "$INPUT_DRY_RUN" = "true" ]; then args+=(--dry-run); fi
         geo-check "${args[@]}"

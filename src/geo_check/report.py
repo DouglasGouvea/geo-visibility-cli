@@ -52,6 +52,22 @@ T = {
             "**Want the full picture?** Get a full audit across ChatGPT, Gemini and "
             "Perplexity: {fiverr}\n\nOr try the free checker: {checker}\n"
         ),
+        "changes": "Changes since last check",
+        "ch_rate": "Mention rate: {prev}% -> {cur}% ({delta} points)",
+        "ch_rate_same": "Mention rate: unchanged at {cur}%",
+        "ch_prev": "Previous check: {when}",
+        "ch_new_d": "New cited domains",
+        "ch_lost_d": "Cited domains no longer present",
+        "ch_new_c": "New competitor candidates",
+        "ch_lost_c": "Competitor candidates no longer present",
+        "ch_none": "None",
+        "history": "Mention rate over time",
+        "history_alt": "Bar chart of mention rate per check",
+        "cta_lead": (
+            "**Want the full picture?** Get a full audit across ChatGPT, Gemini and Perplexity."
+        ),
+        "footer_full": "Full audit",
+        "footer_free": "Free checker",
         # takeaways
         "m_zero": (
             "**Not visible to AI.** None of the {total} answers mentioned {brand}. "
@@ -70,8 +86,8 @@ T = {
             "Keep your listings and reviews up to date to stay there."
         ),
         "platform": (
-            "**Get listed where AI looks.** {domain} is the most cited source "
-            "({count} citations). Make sure {brand} has a complete profile and recent "
+            "**Get listed where AI looks.** {domain} is the most-cited listing/review "
+            "platform ({count} citations). Make sure {brand} has a complete profile and recent "
             "reviews there."
         ),
         "robots_blocked": (
@@ -123,6 +139,23 @@ T = {
             "**Quer o quadro completo?** Peça uma auditoria completa no ChatGPT, Gemini e "
             "Perplexity: {fiverr}\n\nOu use o verificador gratuito: {checker}\n"
         ),
+        "changes": "Mudanças desde a última checagem",
+        "ch_rate": "Taxa de menção: {prev}% -> {cur}% ({delta} pontos)",
+        "ch_rate_same": "Taxa de menção: sem mudança, {cur}%",
+        "ch_prev": "Checagem anterior: {when}",
+        "ch_new_d": "Novos domínios citados",
+        "ch_lost_d": "Domínios que deixaram de ser citados",
+        "ch_new_c": "Novos possíveis concorrentes",
+        "ch_lost_c": "Possíveis concorrentes que sumiram",
+        "ch_none": "Nenhum",
+        "history": "Taxa de menção ao longo do tempo",
+        "history_alt": "Gráfico de barras da taxa de menção por checagem",
+        "cta_lead": (
+            "**Quer o quadro completo?** Peça uma auditoria completa no ChatGPT, Gemini e "
+            "Perplexity."
+        ),
+        "footer_full": "Auditoria completa",
+        "footer_free": "Verificador gratuito",
         "m_zero": (
             "**Invisível para a IA.** Nenhuma das {total} respostas citou {brand}. "
             "Hoje, quem pergunta à IA por {category} em {city} não é direcionado a você."
@@ -140,8 +173,8 @@ T = {
             "Mantenha cadastros e avaliações atualizados para continuar assim."
         ),
         "platform": (
-            "**Esteja onde a IA procura.** {domain} é a fonte mais citada "
-            "({count} citações). Garanta que {brand} tenha um perfil completo e avaliações "
+            "**Esteja onde a IA procura.** {domain} é a plataforma de cadastro/avaliações "
+            "mais citada ({count} citações). Garanta que {brand} tenha um perfil completo e avaliações "
             "recentes ali."
         ),
         "robots_blocked": (
@@ -205,31 +238,55 @@ def takeaways(r: dict) -> list[str]:
     return out[:3]
 
 
-def _robots_section(r: dict, t: dict) -> list[str]:
+def robots_view(r: dict, t: dict) -> dict:
+    """Language-resolved robots content shared by the Markdown and HTML renderers."""
     rb = r["robots"]
-    out = ["", f"## {t['robots'].format(site=r['site'])}", ""]
+    view = {"title": t["robots"].format(site=r["site"]), "note": None, "rows": None,
+            "simulated": False}
     status = rb.get("status", "ok")
     if status == "unreachable":
-        out.append(t["rb_unreachable"].format(error=rb.get("error") or "?"))
+        view["note"] = t["rb_unreachable"].format(error=rb.get("error") or "?")
+    elif status == "http_error":
+        view["note"] = t["rb_http_error"].format(error=rb.get("error") or "HTTP error")
+    elif rb.get("error"):  # older/other shape
+        view["note"] = t["rb_generic_error"].format(error=rb["error"])
+    elif status == "not_found":
+        view["note"] = t["rb_not_found"].format(code=rb.get("code") or 404)
+    else:
+        view["simulated"] = bool(rb.get("simulated"))
+        view["rows"] = [(n, v["status"], v["source"]) for n, v in rb["crawlers"].items()]
+    return view
+
+
+def _robots_section(r: dict, t: dict) -> list[str]:
+    v = robots_view(r, t)
+    out = ["", f"## {v['title']}", ""]
+    if v["note"]:
+        out.append(v["note"])
         return out
-    if status == "http_error":
-        out.append(t["rb_http_error"].format(error=rb.get("error") or "HTTP error"))
-        return out
-    if rb.get("error"):  # older/other shape
-        out.append(t["rb_generic_error"].format(error=rb["error"]))
-        return out
-    if status == "not_found":
-        code = rb.get("code") or 404
-        out.append(t["rb_not_found"].format(code=code))
-        return out
-    if rb.get("simulated"):
+    if v["simulated"]:
         out.append(t["simulated"] + "\n")
     h = t["r_cols"]
     out += [f"| {h[0]} | {h[1]} | {h[2]} |", "|---|---|---|"]
-    out += [
-        f"| {name} | {v['status']} | {v['source']} |" for name, v in rb["crawlers"].items()
-    ]
+    out += [f"| {n} | {st} | {src} |" for n, st, src in v["rows"]]
     return out
+
+
+def changes_rate_line(ch: dict, cur_rate: float, t: dict) -> str:
+    ctx = {"prev": f"{ch['previous_mention_rate'] * 100:.0f}", "cur": f"{cur_rate * 100:.0f}"}
+    delta = ch["mention_rate_delta_points"]
+    if delta == 0:
+        return t["ch_rate_same"].format(**ctx)
+    return t["ch_rate"].format(delta=f"{delta:+g}", **ctx)
+
+
+def changes_items(ch: dict, t: dict) -> list[tuple[str, list[str]]]:
+    return [
+        (t["ch_new_d"], ch["new_cited_domains"]),
+        (t["ch_lost_d"], ch["lost_cited_domains"]),
+        (t["ch_new_c"], ch["new_competitors"]),
+        (t["ch_lost_c"], ch["lost_competitors"]),
+    ]
 
 
 def render_markdown(r: dict) -> str:
@@ -254,6 +311,14 @@ def render_markdown(r: dict) -> str:
         "",
     ]
     out += [f"- {line}" for line in takeaways(r)]
+
+    ch = r.get("changes")
+    if ch:
+        out += ["", f"## {t['changes']}", ""]
+        out.append(f"- {changes_rate_line(ch, s['mention_rate'], t)}")
+        out.append(f"- {t['ch_prev'].format(when=ch['previous_timestamp'])}")
+        for label, items in changes_items(ch, t):
+            out.append(f"- {label}: {', '.join(items) if items else t['ch_none']}")
 
     q = t["q_cols"]
     out += ["", f"## {t['questions']}", "", f"| {q[0]} | {q[1]} | {q[2]} |", "|---|---|---|"]

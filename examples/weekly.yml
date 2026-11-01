@@ -1,0 +1,43 @@
+# Copy to .github/workflows/geo-weekly.yml in your own repository.
+# Runs every Monday, keeps one JSON record per run in geo-history/ and commits the
+# history plus the latest HTML report back to the repo (only when something changed).
+name: Weekly GEO check
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"   # every Monday, 09:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  geo-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DouglasGouvea/geo-visibility-cli@main
+        with:
+          category: dentist
+          city: Campinas
+          brand: Clinica Exemplo
+          site: https://example.com
+          lang: en
+          runs: "3"
+          history-dir: geo-history
+          format: html
+        env:
+          PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
+
+      - name: Commit history and latest report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add geo-history/ reports/
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore: weekly GEO check"
+            git push
+          fi

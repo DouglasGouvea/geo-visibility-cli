@@ -7,8 +7,9 @@ import sys
 import unicodedata
 from pathlib import Path
 
-from . import __version__, dryrun, perplexity, robots
+from . import __version__, dryrun, history, perplexity, robots
 from .analysis import competitor_candidates, count_mentions, rank_domains
+from .html_report import render_html
 from .questions import detect_lang, generate_questions
 from .report import render_markdown
 
@@ -28,6 +29,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--runs", type=int, default=3, help="Runs per question (default 3)")
     p.add_argument("--out", default="./reports", help="Output directory (default ./reports)")
+    p.add_argument(
+        "--format", choices=["md", "html", "json"], default="md",
+        help="Report format: md (default), html (single self-contained file) or json",
+    )
+    p.add_argument(
+        "--history-dir", default=None, metavar="DIR",
+        help="Append each run to DIR and report changes since the previous run "
+        "(same brand/category/city)",
+    )
     p.add_argument("--dry-run", action="store_true", help="Simulate without any network")
     p.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return p
@@ -132,17 +142,27 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {e}", file=sys.stderr)
         return 1
 
-    md = render_markdown(result)
+    if args.history_dir:
+        history.record_run(result, Path(args.history_dir))
+
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     base = f"geo-{_slug(args.brand)}-{_slug(args.city)}"
     json_path = out_dir / f"{base}.json"
-    md_path = out_dir / f"{base}.md"
-    json_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
-    md_path.write_text(md, encoding="utf-8")
+    json_text = json.dumps(result, ensure_ascii=False, indent=2)
+    json_path.write_text(json_text, encoding="utf-8")
 
-    print(md)
-    print(f"\nJSON: {json_path}")
+    if args.format == "json":
+        print(json_text)
+    elif args.format == "html":
+        html_path = out_dir / f"{base}.html"
+        html_path.write_text(render_html(result), encoding="utf-8")
+        print(f"HTML: {html_path}\nJSON: {json_path}")
+    else:
+        md = render_markdown(result)
+        (out_dir / f"{base}.md").write_text(md, encoding="utf-8")
+        print(md)
+        print(f"\nJSON: {json_path}")
     return 0
 
 
