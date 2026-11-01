@@ -35,6 +35,18 @@ def test_detect_lang(category, expected):
     assert detect_lang(category) == expected
 
 
+@pytest.mark.parametrize(
+    "category, city, expected",
+    [("dentist", "São Paulo", "en"), ("dentista", "Campinas", "pt")],
+)
+def test_run_check_lang_ignores_city(category, city, expected):
+    # accented city must not force Portuguese; language comes from the category only
+    args = cli.build_parser().parse_args(
+        [category, city, "--brand", "Acme", "--dry-run", "--runs", "1"]
+    )
+    assert cli.run_check(args)["lang"] == expected
+
+
 # ---------- takeaways ----------
 
 def test_zero_mentions_not_visible():

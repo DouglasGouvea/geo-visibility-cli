@@ -29,12 +29,15 @@ _PT_SUFFIX = ("ista", "eiro", "eira", "aria", "ario", "orio", "ologo", "ador", "
               "ncia", "dade", "cao", "sao")
 
 
-def detect_lang(category: str, city: str = "") -> str:
-    """'pt' if the category looks Portuguese (accents, common words, suffixes), else 'en'."""
+def detect_lang(category: str) -> str:
+    """'pt' if the category looks Portuguese (accents, common words, suffixes), else 'en'.
+
+    Only the category is inspected: city names carry accents in any language
+    (e.g. 'dentist' in 'São Paulo' is still an English query).
+    """
     import unicodedata
 
-    text = f"{category} {city}".strip()
-    if any(c in text for c in "ãõçáéíóúâêôà"):
+    if any(c in category.casefold() for c in "ãõçáéíóúâêôà"):
         return "pt"
     plain = "".join(
         c for c in unicodedata.normalize("NFKD", category.casefold()) if not unicodedata.combining(c)

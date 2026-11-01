@@ -40,7 +40,7 @@ def _slug(text: str) -> str:
 
 
 def run_check(args) -> dict:
-    args.lang = args.lang or detect_lang(args.category, args.city)
+    args.lang = args.lang or detect_lang(args.category)
     questions = generate_questions(args.category, args.city, args.lang)
     api_key = None if args.dry_run else perplexity.get_api_key()
 
