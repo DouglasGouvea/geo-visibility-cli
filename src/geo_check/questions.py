@@ -18,6 +18,33 @@ TEMPLATES = {
 }
 
 
+_PT_WORDS = {
+    "dentista", "medico", "advogado", "restaurante", "academia", "pizzaria", "padaria",
+    "farmacia", "psicologo", "veterinario", "contador", "arquiteto", "engenheiro",
+    "eletricista", "encanador", "pediatra", "oftalmologista", "clinica", "escritorio",
+    "loja", "salao", "barbearia", "mecanico", "oficina", "imobiliaria", "escola",
+    "faculdade", "hotel", "pousada", "consultorio", "nutricionista", "fisioterapeuta",
+}
+_PT_SUFFIX = ("ista", "eiro", "eira", "aria", "ario", "orio", "ologo", "ador", "adora",
+              "ncia", "dade", "cao", "sao")
+
+
+def detect_lang(category: str, city: str = "") -> str:
+    """'pt' if the category looks Portuguese (accents, common words, suffixes), else 'en'."""
+    import unicodedata
+
+    text = f"{category} {city}".strip()
+    if any(c in text for c in "ãõçáéíóúâêôà"):
+        return "pt"
+    plain = "".join(
+        c for c in unicodedata.normalize("NFKD", category.casefold()) if not unicodedata.combining(c)
+    )
+    for w in plain.split():
+        if w in _PT_WORDS or (len(w) > 5 and w.endswith(_PT_SUFFIX)):
+            return "pt"
+    return "en"
+
+
 def generate_questions(category: str, city: str, lang: str = "pt") -> list[str]:
     if lang not in TEMPLATES:
         raise ValueError(f"Unsupported language: {lang!r} (use 'pt' or 'en')")

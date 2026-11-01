@@ -9,7 +9,7 @@ from pathlib import Path
 
 from . import __version__, dryrun, perplexity, robots
 from .analysis import competitor_candidates, count_mentions, rank_domains
-from .questions import generate_questions
+from .questions import detect_lang, generate_questions
 from .report import render_markdown
 
 
@@ -22,7 +22,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("city", help='City, e.g. "Campinas"')
     p.add_argument("--brand", required=True, help="Brand name to look for")
     p.add_argument("--site", help="Site URL; checks robots.txt for AI crawlers")
-    p.add_argument("--lang", choices=["pt", "en"], default="pt")
+    p.add_argument(
+        "--lang", choices=["pt", "en"], default=None,
+        help="Language of questions and report (default: auto-detect from the category)",
+    )
     p.add_argument("--runs", type=int, default=3, help="Runs per question (default 3)")
     p.add_argument("--out", default="./reports", help="Output directory (default ./reports)")
     p.add_argument("--dry-run", action="store_true", help="Simulate without any network")
@@ -37,6 +40,7 @@ def _slug(text: str) -> str:
 
 
 def run_check(args) -> dict:
+    args.lang = args.lang or detect_lang(args.category, args.city)
     questions = generate_questions(args.category, args.city, args.lang)
     api_key = None if args.dry_run else perplexity.get_api_key()
 
@@ -85,7 +89,11 @@ def run_check(args) -> dict:
         "competitor_candidates": [
             {"name": n, "count": c}
             for n, c in competitor_candidates(
-                all_answers, args.brand, exclude=(args.city, args.category)
+                all_answers,
+                args.brand,
+                category=args.category,
+                city=args.city,
+                platforms=[d for d, _ in rank_domains(all_citations)],
             )
         ],
         "site": args.site,
@@ -94,16 +102,22 @@ def run_check(args) -> dict:
 
     if args.site:
         if args.dry_run:
-            content, simulated, error = robots.SIMULATED_ROBOTS, True, None
+            result["robots"] = {
+                "status": "ok",
+                "simulated": True,
+                "crawlers": robots.check_crawlers(robots.SIMULATED_ROBOTS),
+            }
         else:
-            content = robots.fetch_robots(args.site)
-            simulated = False
-            error = None if content is not None else "robots.txt not reachable"
-        result["robots"] = (
-            {"error": error}
-            if content is None
-            else {"simulated": simulated, "crawlers": robots.check_crawlers(content)}
-        )
+            f = robots.fetch_robots_status(args.site)
+            rb = {"status": f["status"], "simulated": False, "code": f["code"], "error": None}
+            if f["status"] == "ok":
+                rb["crawlers"] = robots.check_crawlers(f["content"])
+            elif f["status"] == "not_found":
+                # no robots.txt: nothing is disallowed
+                rb["crawlers"] = robots.check_crawlers("")
+            else:
+                rb["error"] = f["error"] or "unknown error"
+            result["robots"] = rb
     return result
 
 

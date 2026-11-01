@@ -21,7 +21,8 @@ def test_dry_run_end_to_end(tmp_path, capsys, monkeypatch):
     )
     assert rc == 0
     out = capsys.readouterr().out
-    assert "# GEO Visibility Report" in out
+    assert "# Relatório de Visibilidade GEO" in out  # "dentista" -> auto-detected PT
+    assert "## O que isso significa" in out
     assert "fiverr.com/dougmanoel" in out and "geo-visibility-check.vercel.app" in out
     assert "GPTBot" in out
     json_path = next(tmp_path.glob("*.json"))
