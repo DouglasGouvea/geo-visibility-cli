@@ -72,7 +72,7 @@ def run_check(args) -> dict:
         "city": args.city,
         "lang": args.lang,
         "runs": args.runs,
-        "engine": "simulated" if args.dry_run else f"perplexity/{perplexity.MODEL}",
+        "engine": "simulated" if args.dry_run else f"perplexity/{perplexity.PRESET}",
         "dry_run": args.dry_run,
         "summary": {
             "total_answers": total,
