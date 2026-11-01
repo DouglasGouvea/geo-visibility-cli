@@ -43,8 +43,36 @@ def make_record(result: dict, when: datetime) -> dict:
     }
 
 
-def load_records(history_dir: Path, brand: str, category: str, city: str) -> list[dict]:
-    """Records for the same brand/category/city, oldest first. Bad files are skipped."""
+def _valid_list(rec: dict, field: str, name_key: str) -> bool:
+    items = rec.get(field)
+    if items is None:
+        return True
+    return isinstance(items, list) and all(
+        isinstance(x, dict) and isinstance(x.get(name_key), str) for x in items
+    )
+
+
+def _valid(rec: object) -> bool:
+    if not isinstance(rec, dict):
+        return False
+    rate = rec.get("mention_rate")
+    return (
+        isinstance(rec.get("timestamp"), str)
+        and isinstance(rate, (int, float))
+        and not isinstance(rate, bool)
+        and all(isinstance(rec.get(k), str) for k in ("brand", "category", "city"))
+        and _valid_list(rec, "cited_domains", "domain")
+        and _valid_list(rec, "competitor_candidates", "name")
+    )
+
+
+def load_records(
+    history_dir: Path, brand: str, category: str, city: str, dry_run: bool = False
+) -> list[dict]:
+    """Records for the same brand/category/city and run kind (dry or real), oldest first.
+
+    Bad files and malformed records are skipped.
+    """
     want = _key(brand, category, city)
     out = []
     if not history_dir.is_dir():
@@ -52,15 +80,14 @@ def load_records(history_dir: Path, brand: str, category: str, city: str) -> lis
     for p in history_dir.glob("*.json"):
         try:
             rec = json.loads(p.read_text(encoding="utf-8"))
-            if (
-                isinstance(rec, dict)
-                and "timestamp" in rec
-                and "mention_rate" in rec
-                and _key(rec["brand"], rec["category"], rec["city"]) == want
-            ):
-                out.append(rec)
-        except (OSError, ValueError, KeyError, TypeError):
+        except (OSError, ValueError):
             continue
+        if (
+            _valid(rec)
+            and _key(rec["brand"], rec["category"], rec["city"]) == want
+            and bool(rec.get("dry_run", False)) == bool(dry_run)
+        ):
+            out.append(rec)
     out.sort(key=lambda r: r["timestamp"])
     return out
 
@@ -104,12 +131,26 @@ def compute_changes(prev: dict, record: dict) -> dict:
     }
 
 
-def record_run(result: dict, history_dir: Path) -> None:
-    """Annotate `result` with `changes` and `history`, then append this run to the dir."""
-    prior = load_records(history_dir, result["brand"], result["category"], result["city"])
+def prepare_run(result: dict, history_dir: Path) -> dict:
+    """Annotate `result` with `changes` and `history`; return the record to save later.
+
+    Nothing is written here: call `save_record` once the reports are on disk.
+    """
+    prior = load_records(
+        history_dir,
+        result["brand"],
+        result["category"],
+        result["city"],
+        bool(result.get("dry_run", False)),
+    )
     record = make_record(result, _now())
     result["changes"] = compute_changes(prior[-1], record) if prior else None
     series = [{"timestamp": r["timestamp"], "mention_rate": r["mention_rate"]} for r in prior]
     series.append({"timestamp": record["timestamp"], "mention_rate": record["mention_rate"]})
     result["history"] = series
-    save_record(history_dir, record)
+    return record
+
+
+def record_run(result: dict, history_dir: Path) -> None:
+    """Annotate `result` and append this run to the dir in one step."""
+    save_record(history_dir, prepare_run(result, history_dir))

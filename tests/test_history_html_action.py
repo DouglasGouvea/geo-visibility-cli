@@ -101,6 +101,56 @@ def test_history_match_is_case_and_accent_insensitive(tmp_path, clock):
     assert last["changes"] is not None
 
 
+def test_dry_run_and_real_history_are_separate(tmp_path):
+    hist = tmp_path / "h"
+    base = {"brand": "B", "category": "c", "city": "x", "summary": {"mention_rate": 0.5}}
+    history.save_record(hist, history.make_record({**base, "dry_run": True},
+                                                  datetime(2026, 1, 1, tzinfo=timezone.utc)))
+    assert len(history.load_records(hist, "B", "c", "x", dry_run=True)) == 1
+    assert history.load_records(hist, "B", "c", "x", dry_run=False) == []
+    # a real run does not see the dry-run record as predecessor
+    res = {**base, "dry_run": False, "cited_domains": [], "competitor_candidates": []}
+    history.prepare_run(res, hist)
+    assert res["changes"] is None and len(res["history"]) == 1
+
+
+@pytest.mark.parametrize("patch", [
+    {"timestamp": 123},
+    {"mention_rate": "0.5"},
+    {"mention_rate": True},
+    {"cited_domains": [{"count": 1}]},
+    {"competitor_candidates": [{"count": 1}]},
+    {"cited_domains": "oops"},
+    {"brand": None},
+])
+def test_load_records_skips_malformed(tmp_path, patch):
+    hist = tmp_path / "h"
+    hist.mkdir()
+    good = {"timestamp": "2026-01-01T00:00:00.000000Z", "brand": "B", "category": "c",
+            "city": "x", "dry_run": False, "mention_rate": 0.5,
+            "cited_domains": [], "competitor_candidates": []}
+    (hist / "good.json").write_text(json.dumps(good))
+    (hist / "bad.json").write_text(json.dumps({**good, **patch}))
+    recs = history.load_records(hist, "B", "c", "x")
+    assert [r["timestamp"] for r in recs] == [good["timestamp"]]
+
+
+def test_history_not_saved_if_report_write_fails(tmp_path, clock, monkeypatch):
+    from pathlib import Path as P
+    real = P.write_text
+
+    def boom(self, *a, **k):
+        if self.suffix == ".md":
+            raise OSError("disk full")
+        return real(self, *a, **k)
+
+    monkeypatch.setattr(P, "write_text", boom)
+    with pytest.raises(OSError):
+        cli.main([*BASE_ARGS, "--out", str(tmp_path / "out"), "--history-dir",
+                  str(tmp_path / "hist")])
+    assert not (tmp_path / "hist").exists() or not list((tmp_path / "hist").glob("*.json"))
+
+
 def test_changes_section_in_portuguese(tmp_path, clock, capsys):
     args = ["dentista", "Campinas", "--brand", "Clinica Exemplo", "--dry-run",
             "--out", str(tmp_path / "o"), "--history-dir", str(tmp_path / "h")]

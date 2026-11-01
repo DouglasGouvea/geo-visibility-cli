@@ -142,8 +142,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {e}", file=sys.stderr)
         return 1
 
+    record = None
     if args.history_dir:
-        history.record_run(result, Path(args.history_dir))
+        record = history.prepare_run(result, Path(args.history_dir))
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -152,16 +153,25 @@ def main(argv: list[str] | None = None) -> int:
     json_text = json.dumps(result, ensure_ascii=False, indent=2)
     json_path.write_text(json_text, encoding="utf-8")
 
+    md = html_path = None
+    if args.format == "html":
+        html_path = out_dir / f"{base}.html"
+        html_path.write_text(render_html(result), encoding="utf-8")
+    elif args.format != "json":
+        md = render_markdown(result)
+        (out_dir / f"{base}.md").write_text(md, encoding="utf-8")
+
+    # History is saved only after every report file is on disk.
+    if record:
+        history.save_record(Path(args.history_dir), record)
+
     if args.format == "json":
         print(json_text)
     elif args.format == "html":
-        html_path = out_dir / f"{base}.html"
-        html_path.write_text(render_html(result), encoding="utf-8")
         print(f"HTML: {html_path}\nJSON: {json_path}")
     else:
-        md = render_markdown(result)
-        (out_dir / f"{base}.md").write_text(md, encoding="utf-8")
         print(md)
+        print(f"\nJSON: {json_path}")
         print(f"\nJSON: {json_path}")
     return 0
 
