@@ -105,15 +105,35 @@ def check_crawlers(content: str, crawlers: list[str] | None = None) -> dict[str,
     return result
 
 
-def fetch_robots(site: str, timeout: int = 10) -> str | None:
-    """Fetch robots.txt for a site URL. Returns None if unreachable or missing."""
+def fetch_robots_status(site: str, timeout: int = 10) -> dict:
+    """Fetch robots.txt and say what happened.
+
+    Returns {'status': 'ok'|'not_found'|'http_error'|'unreachable', 'content': str|None,
+    'code': int|None, 'error': str|None}. 404/410 -> 'not_found' (no robots.txt means
+    crawlers are allowed by default); other HTTP errors -> 'http_error'; network
+    failures -> 'unreachable'.
+    """
     if "//" not in site:
         site = "https://" + site
     p = urlparse(site)
     url = f"{p.scheme}://{p.netloc}/robots.txt"
-    req = urllib.request.Request(url, headers={"User-Agent": "geo-check/0.1"})
+    out = {"status": "ok", "content": None, "code": None, "error": None}
     try:
+        req = urllib.request.Request(url, headers={"User-Agent": "geo-check/0.1"})
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return resp.read().decode("utf-8", errors="replace")
-    except (urllib.error.URLError, OSError, ValueError):
-        return None
+            out["content"] = resp.read().decode("utf-8", errors="replace")
+            out["code"] = getattr(resp, "status", None)
+    except urllib.error.HTTPError as e:
+        out["code"] = e.code
+        out["status"] = "not_found" if e.code in (404, 410) else "http_error"
+        out["error"] = f"HTTP {e.code}"
+    except (urllib.error.URLError, OSError, ValueError) as e:
+        reason = getattr(e, "reason", None) or str(e) or type(e).__name__
+        out["status"] = "unreachable"
+        out["error"] = str(reason)
+    return out
+
+
+def fetch_robots(site: str, timeout: int = 10) -> str | None:
+    """Fetch robots.txt content. Returns None if unreachable or missing."""
+    return fetch_robots_status(site, timeout)["content"]
