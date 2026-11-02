@@ -34,7 +34,6 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Topic :: Internet",
     "Topic :: Internet :: WWW/HTTP",
-    "Topic :: Office/Business :: Marketing",
 ]
 dependencies = []
 
