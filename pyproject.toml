@@ -38,7 +38,7 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/DouglasGouvea/geo-visibility-cli"
+Homepage = "https://errandcode.com/geo"
 Repository = "https://github.com/DouglasGouvea/geo-visibility-cli"
 Issues = "https://github.com/DouglasGouvea/geo-visibility-cli/issues"
 Changelog = "https://github.com/DouglasGouvea/geo-visibility-cli/blob/main/CHANGELOG.md"

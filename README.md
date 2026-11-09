@@ -181,8 +181,9 @@ Exemplo real (novembro de 2026): dentista em Campinas, marca OdontoCompany, 15 r
 
 ## Full audit / Auditoria completa
 
-- Full audit (ChatGPT, Gemini, Perplexity): https://www.fiverr.com/dougmanoel/audit-how-chatgpt-gemini-and-perplexity-mention-your-business
-- Free checker: https://geo-visibility-check.vercel.app
+- Product page / home: https://errandcode.com/geo
+- Full audit on Fiverr (ChatGPT, Gemini, Perplexity): https://www.fiverr.com/dougmanoel/audit-how-chatgpt-gemini-and-perplexity-mention-your-business
+- Free checker (same product): https://geo-visibility-check.vercel.app
 
 ## License
 
